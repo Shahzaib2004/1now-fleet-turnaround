@@ -5,6 +5,7 @@ An AI-powered, real-time vehicle turnaround assistant built with **Next.js**, **
 ## Features
 
 - **Quick Return Check-in Form**: Input vehicle plates/nicknames, fuel levels, current mileage vs. last service mileage, and return notes.
+- **AI Image Condition Analyzer**: Upload up to 3 photos (damage, dashboard lights, interiors) and automatically analyze them to generate check-in condition notes.
 - **Smart Turnaround Verdict**: Instant `GO`, `HOLD`, or `FLAG` decisions with detailed operator reasoning.
 - **Time & Revenue Impact Calculation**: Calculates the financial cost of a delay based on the vehicle's Average Daily Rate (ADR).
 - **Booking Window Feasibility Check**: Automatically totals estimated action times, compares them to the next booking window, warns the operator of tight/overflowing windows, and suggests items to skip if needed.
@@ -21,7 +22,9 @@ An AI-powered, real-time vehicle turnaround assistant built with **Next.js**, **
 - **Framework**: Next.js 16 (App Router)
 - **Styling**: Pure CSS Modules (Dark brutalist aesthetic with orange highlights)
 - **State Management**: React Hooks (`useState`, `useEffect`)
-- **Backend API**: Secure Next.js Route Handler (`app/api/analyze/route.ts`)
+- **Backend APIs**: 
+  - `app/api/analyze/route.ts` (Turnaround decision engine)
+  - `app/api/analyze-images/route.ts` (Vision-based condition notes generator)
 - **AI Integration**: `@openrouter/sdk`
 
 ---
@@ -73,14 +76,42 @@ npm start
 
 ## Resilient AI Failover Design
 
-To guarantee continuous operation in high-volume environments or when using free rate-limited models, the API route is configured with a **dual-model fallback strategy**:
+To guarantee continuous operation in high-volume environments or when using free rate-limited models, both backend routes implement a **dual-model fallback strategy**:
+
+### 1. Check-in Analysis Flow (`/api/analyze`)
 
 ```mermaid
 graph TD
-    A[Frontend Submit] --> B[POST /api/analyze]
+    A[Frontend Form Submit] --> B[POST /api/analyze]
     B --> C{Query Primary Model<br/>gemma-4-26b-a4b-it:free}
     C -->|Success 200| D[Return Structured JSON]
     C -->|Error / 429 Rate Limit| E[Fallback to openrouter/free]
     E -->|Success 200| D
     E -->|Error 500| F[Show Error Panel to Operator]
 ```
+
+### 2. Visual Photo Analysis Flow (`/api/analyze-images`)
+
+```mermaid
+graph TD
+    A[Upload Photos] --> B[Base64 Conversion]
+    B --> C[POST /api/analyze-images]
+    C --> D{Query Vision Model<br/>gemma-4-26b-a4b-it:free}
+    D -->|Success 200| E[Return Condition Notes Text]
+    D -->|Error / 429 Rate Limit| F[Fallback to openrouter/free]
+    F -->|Success 200| E
+    F -->|Error 500| G[Show Error Alert to Operator]
+    E --> H[Append to Return Condition Notes]
+```
+
+
+---
+
+## AI Image Analysis Details
+
+To optimize speed and prevent server-side timeout issues, the visual inspection tool implements the following constraints and behaviors:
+
+1. **Size Limits**: Enforces a maximum of **3 images** per analysis and a client-side filter limiting each file to **4MB**.
+2. **Base64 Payload Pipeline**: Images are encoded to base64 Data URLs on the frontend and sent inside the `messages[].content` array as standard vision message attachments.
+3. **Smart Formatting**: The generated findings are appended to any existing manual notes in the text area under a dedicated `[AI Visual Inspection]` header, ensuring no manual documentation is lost.
+
