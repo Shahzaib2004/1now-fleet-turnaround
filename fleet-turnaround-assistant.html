@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fleet Turnaround Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background-color: #0a0a0a;
+            border-left: 4px solid #FF5C00;
+            padding: 24px 32px;
+            margin-bottom: 32px;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .header-subtitle {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Main container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 32px 64px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+        }
+
+        /* Form Panel */
+        .form-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .form-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-section-title {
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ffffff;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #e0e0e0;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            background-color: #141414;
+            border: 1px solid #1a1a1a;
+            color: #ffffff;
+            padding: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            border-radius: 0;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #FF5C00;
+            background-color: #1a1a1a;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .mileage-diff {
+            font-size: 12px;
+            color: #FF5C00;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .submit-btn {
+            background-color: #FF5C00;
+            color: #ffffff;
+            border: none;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s;
+            letter-spacing: 0.5px;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background-color: #e64c00;
+        }
+
+        .submit-btn:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+        }
+
+        .submit-btn span.loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Fleet Health Section */
+        .fleet-health-divider {
+            height: 2px;
+            background: linear-gradient(90deg, #FF5C00 0%, transparent 50%);
+            margin: 32px 0;
+        }
+
+        .fleet-health-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .fleet-health-title {
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #FF5C00;
+        }
+
+        .fleet-health-placeholder {
+            color: #555;
+            font-size: 13px;
+            text-align: center;
+            padding: 20px;
+            background-color: #141414;
+            border: 1px solid #1a1a1a;
+        }
+
+        .vehicle-card {
+            background-color: #141414;
+            border: 1px solid #1a1a1a;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .vehicle-card-header {
+            font-size: 15px;
+            font-weight: 700;
+            color: #FF5C00;
+        }
+
+        .health-score-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .health-score-label {
+            font-size: 12px;
+            color: #888;
+            min-width: 80px;
+        }
+
+        .health-score-bar {
+            flex: 1;
+            height: 8px;
+            background-color: #1a1a1a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .health-score-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .health-score-fill.green { background-color: #22c55e; }
+        .health-score-fill.amber { background-color: #f59e0b; }
+        .health-score-fill.red { background-color: #ef4444; }
+
+        .health-score-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: #e0e0e0;
+            min-width: 30px;
+            text-align: right;
+        }
+
+        .vehicle-stats {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 11px;
+        }
+
+        .vehicle-stat {
+            background-color: #1a1a1a;
+            padding: 4px 8px;
+            color: #888;
+        }
+
+        .vehicle-verdict-badges {
+            display: flex;
+            gap: 8px;
+        }
+
+        .verdict-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 8px;
+            background-color: #1a1a1a;
+            border-radius: 2px;
+        }
+
+        .verdict-badge.go { color: #22c55e; }
+        .verdict-badge.hold { color: #f59e0b; }
+        .verdict-badge.flag { color: #ef4444; }
+
+        .vehicle-issue {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .vehicle-issue-label {
+            color: #666;
+            margin-right: 4px;
+        }
+
+        .vehicle-lastseen {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .clear-history-btn {
+            background: none;
+            border: none;
+            color: #555;
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: underline;
+            margin-top: 8px;
+            padding: 0;
+            transition: color 0.2s;
+        }
+
+        .clear-history-btn:hover {
+            color: #888;
+        }
+
+        /* Output Panel */
+        .output-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .placeholder-message {
+            background-color: #141414;
+            border: 1px solid #1a1a1a;
+            padding: 32px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        /* Verdict Banner */
+        .verdict-banner {
+            padding: 24px;
+            text-align: center;
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 20px;
+            border-radius: 0;
+        }
+
+        .verdict-banner.go {
+            background-color: #22c55e;
+        }
+
+        .verdict-banner.hold {
+            background-color: #f59e0b;
+        }
+
+        .verdict-banner.flag {
+            background-color: #ef4444;
+        }
+
+        .verdict-reason {
+            font-size: 13px;
+            font-weight: 400;
+            margin-top: 8px;
+            opacity: 0.95;
+        }
+
+        /* At a Glance */
+        .at-glance {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .metric-card {
+            background-color: #141414;
+            border-left: 3px solid #FF5C00;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #FF5C00;
+        }
+
+        /* Action Items */
+        .section {
+            background-color: #141414;
+            border: 1px solid #1a1a1a;
+            padding: 16px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            color: #e0e0e0;
+            border-bottom: 1px solid #1a1a1a;
+            padding-bottom: 8px;
+        }
+
+        .action-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .action-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            background-color: #0a0a0a;
+            border-left: 3px solid #1a1a1a;
+        }
+
+        .urgency-badge {
+            padding: 4px 8px;
+            font-size: 10px;
+            font-weight: 600;
+            border-radius: 2px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            min-width: fit-content;
+            margin-top: 2px;
+        }
+
+        .urgency-badge.now {
+            background-color: #ef4444;
+            color: #ffffff;
+        }
+
+        .urgency-badge.before {
+            background-color: #FF5C00;
+            color: #ffffff;
+        }
+
+        .urgency-badge.week {
+            background-color: #444;
+            color: #ccc;
+        }
+
+        .action-item.now {
+            border-left-color: #ef4444;
+        }
+
+        .action-item.before {
+            border-left-color: #FF5C00;
+        }
+
+        .action-item.week {
+            border-left-color: #444;
+        }
+
+        .action-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .action-task {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .action-time {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .action-note {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        /* Maintenance Alerts */
+        .alerts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .alert-item {
+            border-left: 3px solid #888;
+            padding: 12px;
+            background-color: #0a0a0a;
+        }
+
+        .alert-item.high {
+            border-left-color: #ef4444;
+        }
+
+        .alert-item.medium {
+            border-left-color: #FF5C00;
+        }
+
+        .alert-item.low {
+            border-left-color: #666;
+        }
+
+        .alert-severity {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .alert-severity.high { color: #ef4444; }
+        .alert-severity.medium { color: #FF5C00; }
+        .alert-severity.low { color: #888; }
+
+        .alert-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e0e0e0;
+            margin-bottom: 4px;
+        }
+
+        .alert-recommendation {
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Cleaning Checklist */
+        .checklist {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px;
+            background-color: #0a0a0a;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .checklist-item:hover {
+            background-color: #1a1a1a;
+        }
+
+        .checklist-item.flagged {
+            border-left: 3px solid #FF5C00;
+            padding-left: 9px;
+        }
+
+        .custom-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #444;
+            background-color: transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .checklist-item:hover .custom-checkbox {
+            border-color: #FF5C00;
+        }
+
+        .custom-checkbox.checked {
+            background-color: #FF5C00;
+            border-color: #FF5C00;
+        }
+
+        .custom-checkbox.checked::after {
+            content: '✓';
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .checklist-label {
+            font-size: 14px;
+            color: #e0e0e0;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .checklist-item.checked .checklist-label {
+            text-decoration: line-through;
+            color: #666;
+        }
+
+        /* Timing Check */
+        .timing-check {
+            padding: 16px;
+            border-radius: 0;
+            color: #ffffff;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .timing-check.success {
+            background-color: #22c55e;
+        }
+
+        .timing-check.tight {
+            background-color: #f59e0b;
+        }
+
+        .timing-check.fail {
+            background-color: #ef4444;
+        }
+
+        .timing-message {
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .timing-details {
+            font-size: 12px;
+            opacity: 0.95;
+            margin-bottom: 8px;
+        }
+
+        .timing-suggestions {
+            font-size: 12px;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        .timing-note {
+            font-size: 12px;
+            color: #e0e0e0;
+            font-style: italic;
+            margin-top: 12px;
+            opacity: 0.8;
+        }
+
+        /* Operator Note */
+        .operator-note {
+            background-color: #141414;
+            border-left: 3px solid #FF5C00;
+            padding: 16px;
+            font-size: 13px;
+            line-height: 1.7;
+            color: #d0d0d0;
+            font-style: italic;
+        }
+
+        .operator-note-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #FF5C00;
+            margin-bottom: 8px;
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .new-vehicle-btn,
+        .whatsapp-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .new-vehicle-btn {
+            background-color: #1a1a1a;
+            color: #FF5C00;
+            border: 1px solid #FF5C00;
+        }
+
+        .new-vehicle-btn:hover {
+            background-color: #FF5C00;
+            color: #0a0a0a;
+        }
+
+        .whatsapp-btn {
+            background-color: #1a1a1a;
+            color: #25D366;
+            border: 1px solid #25D366;
+        }
+
+        .whatsapp-btn:hover {
+            background-color: #25D366;
+            color: #000;
+        }
+
+        /* Error Message */
+        .error-message {
+            background-color: #ef4444;
+            color: #ffffff;
+            padding: 16px;
+            border-radius: 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Loading State */
+        .output-loading {
+            background-color: #141414;
+            padding: 32px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .output-loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(255, 92, 0, 0.3);
+            border-top-color: #FF5C00;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .output-loading-text {
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <h1>Fleet Turnaround Assistant</h1>
+            <div class="header-subtitle">powered by 1Now</div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Left Panel: Form -->
+        <div class="form-panel">
+            <form id="turnaroundForm">
+                <!-- Vehicle Return Details Section -->
+                <div class="form-section">
+                    <div class="form-section-title">Vehicle Return Details</div>
+                    
+                    <div class="form-group">
+                        <label for="vehicleNickname">Vehicle Nickname / Plate *</label>
+                        <input type="text" id="vehicleNickname" placeholder="e.g. Civic-07 or 7ABC123" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="currentMileage">Current Mileage *</label>
+                        <input type="number" id="currentMileage" placeholder="e.g. 34820" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lastServiceMileage">Mileage at Last Service *</label>
+                        <input type="number" id="lastServiceMileage" placeholder="e.g. 32000" required>
+                        <div class="mileage-diff" id="mileageDiff"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fuelLevel">Fuel Level on Return *</label>
+                        <select id="fuelLevel" required>
+                            <option value="">Select fuel level</option>
+                            <option value="Full">Full</option>
+                            <option value="3/4">¾ Tank</option>
+                            <option value="Half">Half Tank</option>
+                            <option value="1/4">¼ Tank</option>
+                            <option value="Nearly Empty">Nearly Empty</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nextBooking">Next Booking In *</label>
+                        <select id="nextBooking" required>
+                            <option value="">Select time window</option>
+                            <option value="Under 1 hour">Under 1 hour</option>
+                            <option value="1–2 hours">1–2 hours</option>
+                            <option value="2–4 hours">2–4 hours</option>
+                            <option value="4–8 hours">4–8 hours</option>
+                            <option value="8+ hours">8+ hours</option>
+                            <option value="No booking yet">No booking yet</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adr">Average Daily Rate (USD) *</label>
+                        <input type="number" id="adr" placeholder="e.g. 65" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="returnConditionNotes">Return Condition Notes *</label>
+                        <textarea id="returnConditionNotes" placeholder="e.g. minor scuff on rear bumper, smells like smoke, left rear tire looks low, passenger window won't roll up fully" required></textarea>
+                        <div class="helper-text">Describe any damage, odors, mechanical issues, or other observations</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="previousIssues">Previous Known Issues (optional)</label>
+                        <textarea id="previousIssues" placeholder="e.g. AC has been weak since last month, driver seat adjustment stiff"></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    <span id="submitBtnText">Analyze Turnaround →</span>
+                </button>
+            </form>
+
+            <!-- Fleet Health Section -->
+            <div class="fleet-health-divider"></div>
+            <div class="fleet-health-section">
+                <div class="fleet-health-title">Fleet Health</div>
+                <div id="fleetHealthContainer">
+                    <div class="fleet-health-placeholder">No vehicles tracked yet. Submit your first return above.</div>
+                </div>
+                <button class="clear-history-btn" id="clearHistoryBtn" style="display: none;">Clear History</button>
+            </div>
+        </div>
+
+        <!-- Right Panel: Output -->
+        <div class="output-panel">
+            <div id="outputContainer" class="placeholder-message">
+                Enter vehicle return details and click Analyze to get your turnaround report.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =====================
+        // CONFIGURATION
+        // =====================
+        
+        // INSERT ANTHROPIC API KEY HERE
+        const API_KEY = "YOUR_KEY_HERE";
+        const API_URL = "https://api.anthropic.com/v1/messages";
+        const MODEL = "claude-sonnet-4-20250514";
+
+        // =====================
+        // STATE MANAGEMENT
+        // =====================
+
+        let fleetHistory = [];
+
+        // Load fleet history on page load
+        function loadFleetHistory() {
+            const stored = localStorage.getItem('fleet_history');
+            if (stored) {
+                try {
+                    fleetHistory = JSON.parse(stored);
+                    renderFleetHealth();
+                } catch (e) {
+                    console.error('Failed to load fleet history:', e);
+                    fleetHistory = [];
+                }
+            }
+        }
+
+        // Save entry to fleet history
+        function saveFleetEntry(vehicleId, verdict, actionItems, timeToReady, mileage) {
+            const topIssue = actionItems && actionItems.length > 0 
+                ? actionItems[0].task 
+                : "No issues flagged";
+
+            const entry = {
+                vehicleId,
+                timestamp: new Date().toISOString(),
+                verdict,
+                topIssue,
+                timeToReady,
+                mileage
+            };
+
+            fleetHistory.push(entry);
+            localStorage.setItem('fleet_history', JSON.stringify(fleetHistory));
+            renderFleetHealth();
+        }
+
+        // =====================
+        // FLEET HEALTH RENDERING
+        // =====================
+
+        function renderFleetHealth() {
+            const container = document.getElementById('fleetHealthContainer');
+            const clearBtn = document.getElementById('clearHistoryBtn');
+
+            if (fleetHistory.length === 0) {
+                container.innerHTML = '<div class="fleet-health-placeholder">No vehicles tracked yet. Submit your first return above.</div>';
+                clearBtn.style.display = 'none';
+                return;
+            }
+
+            clearBtn.style.display = 'block';
+
+            // Group by vehicle ID
+            const vehicleMap = {};
+            fleetHistory.forEach(entry => {
+                if (!vehicleMap[entry.vehicleId]) {
+                    vehicleMap[entry.vehicleId] = [];
+                }
+                vehicleMap[entry.vehicleId].push(entry);
+            });
+
+            let html = '';
+            Object.keys(vehicleMap).forEach(vehicleId => {
+                const entries = vehicleMap[vehicleId];
+                const goCount = entries.filter(e => e.verdict === 'GO').length;
+                const holdCount = entries.filter(e => e.verdict === 'HOLD').length;
+                const flagCount = entries.filter(e => e.verdict === 'FLAG').length;
+                const total = entries.length;
+
+                // Calculate health score
+                const healthScore = Math.round((goCount * 100 + holdCount * 50) / total);
+                const healthColor = healthScore >= 75 ? 'green' : healthScore >= 40 ? 'amber' : 'red';
+
+                // Most recurring issue
+                const issueMap = {};
+                entries.forEach(e => {
+                    issueMap[e.topIssue] = (issueMap[e.topIssue] || 0) + 1;
+                });
+                const mostRecurring = Object.keys(issueMap).reduce((a, b) => 
+                    issueMap[a] > issueMap[b] ? a : b, Object.keys(issueMap)[0]);
+
+                // Last seen relative time
+                const lastEntry = entries[entries.length - 1];
+                const lastTime = new Date(lastEntry.timestamp);
+                const now = new Date();
+                const diffMs = now - lastTime;
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                const lastSeen = diffDays === 0 ? 'Just now' : 
+                                 diffDays === 1 ? '1 day ago' : 
+                                 `${diffDays} days ago`;
+
+                html += `
+                    <div class="vehicle-card">
+                        <div class="vehicle-card-header">${vehicleId}</div>
+                        
+                        <div class="health-score-container">
+                            <div class="health-score-label">Health Score</div>
+                            <div class="health-score-bar">
+                                <div class="health-score-fill ${healthColor}" style="width: ${healthScore}%"></div>
+                            </div>
+                            <div class="health-score-value">${healthScore}</div>
+                        </div>
+
+                        <div class="vehicle-stats">
+                            <div class="vehicle-stat">Check-ins: ${total}</div>
+                            <div class="vehicle-stat">Last: ${lastSeen}</div>
+                        </div>
+
+                        <div class="vehicle-verdict-badges">
+                            <div class="verdict-badge go">✓ GO ${goCount}</div>
+                            <div class="verdict-badge hold">⚠ HOLD ${holdCount}</div>
+                            <div class="verdict-badge flag">✗ FLAG ${flagCount}</div>
+                        </div>
+
+                        <div class="vehicle-issue">
+                            <span class="vehicle-issue-label">Most recurring:</span>
+                            ${mostRecurring}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // =====================
+        // FORM INTERACTIONS
+        // =====================
+
+        // Live mileage calculation
+        document.getElementById('currentMileage').addEventListener('input', updateMileageDiff);
+        document.getElementById('lastServiceMileage').addEventListener('input', updateMileageDiff);
+
+        function updateMileageDiff() {
+            const current = parseInt(document.getElementById('currentMileage').value) || 0;
+            const last = parseInt(document.getElementById('lastServiceMileage').value) || 0;
+            const diff = current - last;
+
+            const diffElement = document.getElementById('mileageDiff');
+            if (diff > 0) {
+                diffElement.textContent = `Miles since last service: ${diff.toLocaleString()}`;
+            } else {
+                diffElement.textContent = '';
+            }
+        }
+
+        // Clear history button
+        document.getElementById('clearHistoryBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all fleet history? This cannot be undone.')) {
+                fleetHistory = [];
+                localStorage.removeItem('fleet_history');
+                renderFleetHealth();
+            }
+        });
+
+        // =====================
+        // API INTEGRATION
+        // =====================
+
+        document.getElementById('turnaroundForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Get form values
+            const vehicleId = document.getElementById('vehicleNickname').value;
+            const currentMileage = parseInt(document.getElementById('currentMileage').value);
+            const lastServiceMileage = parseInt(document.getElementById('lastServiceMileage').value);
+            const mileageSinceLast = currentMileage - lastServiceMileage;
+            const fuelLevel = document.getElementById('fuelLevel').value;
+            const nextBooking = document.getElementById('nextBooking').value;
+            const adr = parseFloat(document.getElementById('adr').value);
+            const notes = document.getElementById('returnConditionNotes').value;
+            const previousIssues = document.getElementById('previousIssues').value || "None reported";
+
+            // Check API key
+            if (API_KEY === "YOUR_KEY_HERE") {
+                showError('API key not configured. Please add your Anthropic API key to the script.');
+                return;
+            }
+
+            // Show loading state
+            showLoading();
+            updateButtonState(true);
+
+            // Build user message for Claude
+            const userMessage = `Analyze this vehicle return and produce a turnaround report.
+
+Vehicle: ${vehicleId}
+Current mileage: ${currentMileage} miles
+Last service mileage: ${lastServiceMileage} miles
+Miles since last service: ${mileageSinceLast} miles
+Fuel level on return: ${fuelLevel}
+Next booking in: ${nextBooking}
+Operator's average daily rate: $${adr}
+Return condition notes: ${notes}
+Previous known issues: ${previousIssues}
+
+Respond with ONLY a valid JSON object in exactly this structure:
+{
+  "verdict": "GO" | "HOLD" | "FLAG",
+  "verdict_reason": "One sentence explaining the verdict",
+  "time_to_ready": "e.g. 45 minutes" or "Needs inspection before estimate",
+  "revenue_impact": "Plain English sentence about what delay costs at their ADR, e.g. Holding this car for 2 hours costs approximately $5.42 in lost rental time at your $65/day rate",
+  "action_items": [
+    { "task": "Task name", "urgency": "NOW" | "BEFORE NEXT RENTAL" | "THIS WEEK", "estimated_minutes": number or null, "note": "Optional extra detail" }
+  ],
+  "maintenance_alerts": [
+    { "alert": "Alert description", "severity": "HIGH" | "MEDIUM" | "LOW", "recommendation": "What to do about it" }
+  ],
+  "cleaning_checklist": [
+    { "item": "Checklist item", "flag": true | false }
+  ],
+  "operator_note": "One paragraph of plain advice from the AI to the operator, written as if from a trusted fleet manager",
+  "timing_note": "One sentence from Claude about whether the action list feels achievable given the booking window, written as practical advice"
+}`;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': API_KEY,
+                        'anthropic-version': '2023-06-01'
+                    },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        max_tokens: 2048,
+                        system: `You are a fleet operations expert assistant for a car rental company. Your job is to analyze vehicle return data and produce a fast, actionable turnaround report. You help operators decide whether a returned car is ready for the next rental, what actions to take, and what it costs to delay. Be direct, specific, and practical. Never be vague. Always prioritize operator revenue and renter safety equally. Respond only in the JSON format specified. No extra text, no markdown, no explanation outside the JSON.`,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: userMessage
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API request failed');
+                }
+
+                const data = await response.json();
+                const content = data.content[0].text;
+
+                // Parse JSON response
+                let analysis;
+                try {
+                    analysis = JSON.parse(content);
+                } catch (parseError) {
+                    throw new Error('Invalid JSON response from AI');
+                }
+
+                // Save to fleet history
+                saveFleetEntry(vehicleId, analysis.verdict, analysis.action_items, analysis.time_to_ready, currentMileage);
+
+                // Render output
+                renderOutput(analysis, nextBooking, adr);
+                updateButtonState(false);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(`Analysis failed: ${error.message}`);
+                updateButtonState(false);
+            }
+        });
+
+        function updateButtonState(loading) {
+            const btn = document.querySelector('.submit-btn');
+            const btnText = document.getElementById('submitBtnText');
+            
+            if (loading) {
+                btn.disabled = true;
+                btnText.innerHTML = '<span class="loading"><span class="spinner"></span>Analyzing with AI...</span>';
+            } else {
+                btn.disabled = false;
+                btnText.textContent = 'Analyze Turnaround →';
+            }
+        }
+
+        function showLoading() {
+            const container = document.getElementById('outputContainer');
+            container.innerHTML = `
+                <div class="output-loading">
+                    <div class="output-loading-spinner"></div>
+                    <div class="output-loading-text">Analyzing vehicle condition...</div>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            const container = document.getElementById('outputContainer');
+            container.innerHTML = `
+                <div class="error-message">
+                    <strong>Analysis failed.</strong> ${message}
+                </div>
+            `;
+        }
+
+        // =====================
+        // OUTPUT RENDERING
+        // =====================
+
+        function renderOutput(analysis, nextBooking, adr) {
+            const container = document.getElementById('outputContainer');
+            
+            // Calculate timing
+            const timingInfo = calculateTiming(analysis.action_items, nextBooking, adr);
+            
+            let html = '';
+
+            // Verdict Banner
+            const verdictEmoji = analysis.verdict === 'GO' ? '✓' : 
+                                 analysis.verdict === 'HOLD' ? '⚠' : '✗';
+            const verdictClass = analysis.verdict.toLowerCase();
+            
+            html += `
+                <div class="verdict-banner ${verdictClass}">
+                    ${verdictEmoji} ${analysis.verdict}
+                    <div class="verdict-reason">${analysis.verdict_reason}</div>
+                </div>
+            `;
+
+            // At a Glance
+            html += `
+                <div class="at-glance">
+                    <div class="metric-card">
+                        <div class="metric-label">Est. Time to Ready</div>
+                        <div class="metric-value">${analysis.time_to_ready}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Revenue Impact</div>
+                        <div class="metric-value" style="font-size: 13px; font-weight: 600;">${analysis.revenue_impact.substring(0, 50)}...</div>
+                    </div>
+                </div>
+            `;
+
+            // Timing Check
+            html += renderTimingCheck(timingInfo, analysis);
+
+            // Action Items
+            if (analysis.action_items && analysis.action_items.length > 0) {
+                html += `
+                    <div class="section">
+                        <div class="section-title">Action Items</div>
+                        <div class="action-list">
+                `;
+                
+                analysis.action_items.forEach(item => {
+                    const urgencyClass = item.urgency === 'NOW' ? 'now' : 
+                                        item.urgency === 'BEFORE NEXT RENTAL' ? 'before' : 'week';
+                    const urgencyLabel = item.urgency === 'NOW' ? 'NOW' : 
+                                        item.urgency === 'BEFORE NEXT RENTAL' ? 'BEFORE NEXT RENTAL' : 'THIS WEEK';
+                    const timeStr = item.estimated_minutes ? ` (~${item.estimated_minutes} min)` : '';
+
+                    html += `
+                        <div class="action-item ${urgencyClass}">
+                            <div class="urgency-badge ${urgencyClass}">${urgencyLabel}</div>
+                            <div class="action-content">
+                                <div class="action-task">${item.task}${timeStr}</div>
+                                ${item.note ? `<div class="action-note">${item.note}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Maintenance Alerts
+            if (analysis.maintenance_alerts && analysis.maintenance_alerts.length > 0) {
+                html += `
+                    <div class="section">
+                        <div class="section-title">Maintenance Alerts</div>
+                        <div class="alerts-list">
+                `;
+
+                analysis.maintenance_alerts.forEach(alert => {
+                    const severityClass = alert.severity.toLowerCase();
+                    html += `
+                        <div class="alert-item ${severityClass}">
+                            <div class="alert-severity ${severityClass}">${alert.severity}</div>
+                            <div class="alert-text">${alert.alert}</div>
+                            <div class="alert-recommendation">${alert.recommendation}</div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Cleaning Checklist
+            if (analysis.cleaning_checklist && analysis.cleaning_checklist.length > 0) {
+                html += `
+                    <div class="section">
+                        <div class="section-title">Cleaning Checklist</div>
+                        <div class="checklist" id="checklistContainer">
+                `;
+
+                analysis.cleaning_checklist.forEach((item, idx) => {
+                    const flagged = item.flag ? 'flagged' : '';
+                    html += `
+                        <div class="checklist-item ${flagged}" data-idx="${idx}">
+                            <div class="custom-checkbox"></div>
+                            <div class="checklist-label">${item.item}</div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Operator Note
+            html += `
+                <div class="operator-note">
+                    <div class="operator-note-label">Fleet Manager's Note</div>
+                    ${analysis.operator_note}
+                </div>
+            `;
+
+            // Action Buttons
+            html += `
+                <div class="button-group">
+                    <button class="new-vehicle-btn" id="newVehicleBtn">New Vehicle →</button>
+                    <button class="whatsapp-btn" id="whatsappBtn">📋 Copy WhatsApp Summary</button>
+                </div>
+            `;
+
+            container.innerHTML = html;
+
+            // Attach event listeners to checklist items
+            document.querySelectorAll('.checklist-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    this.classList.toggle('checked');
+                    this.querySelector('.custom-checkbox').classList.toggle('checked');
+                });
+            });
+
+            // New Vehicle button
+            document.getElementById('newVehicleBtn').addEventListener('click', function() {
+                document.getElementById('turnaroundForm').reset();
+                document.getElementById('mileageDiff').textContent = '';
+                document.getElementById('outputContainer').innerHTML = `
+                    <div class="placeholder-message">
+                        Enter vehicle return details and click Analyze to get your turnaround report.
+                    </div>
+                `;
+                renderFleetHealth();
+                window.scrollTo(0, 0);
+            });
+
+            // WhatsApp button
+            document.getElementById('whatsappBtn').addEventListener('click', function() {
+                generateWhatsAppSummary(analysis);
+            });
+        }
+
+        // =====================
+        // TIMING CALCULATION
+        // =====================
+
+        function calculateTiming(actionItems, nextBooking, adr) {
+            const timeMapping = {
+                'Under 1 hour': 60,
+                '1–2 hours': 90,
+                '2–4 hours': 150,
+                '4–8 hours': 360,
+                '8+ hours': 999,
+                'No booking yet': 999
+            };
+
+            const availableMinutes = timeMapping[nextBooking] || 999;
+
+            // Sum task minutes
+            let totalMinutes = 0;
+            const tasks = [];
+            actionItems.forEach(item => {
+                if (item.estimated_minutes) {
+                    totalMinutes += item.estimated_minutes;
+                    tasks.push(item);
+                }
+            });
+
+            return {
+                totalMinutes,
+                availableMinutes,
+                tasks,
+                adr
+            };
+        }
+
+        function renderTimingCheck(timingInfo, analysis) {
+            const { totalMinutes, availableMinutes, tasks, adr } = timingInfo;
+            const ratio = totalMinutes / availableMinutes;
+
+            let state = 'success';
+            let message = '✓ YOU\'LL MAKE IT';
+            let details = `Total tasks: ${totalMinutes} min | Available: ${availableMinutes} min | Buffer: ${availableMinutes - totalMinutes} min`;
+
+            if (ratio > 1) {
+                state = 'fail';
+                message = '✗ YOU WON\'T MAKE IT';
+                const overage = totalMinutes - availableMinutes;
+                details = `Total tasks: ${totalMinutes} min | Available: ${availableMinutes} min | ${overage} min over`;
+            } else if (ratio > 0.85) {
+                state = 'tight';
+                message = '⚠ TIGHT WINDOW';
+                details = `Total tasks: ${totalMinutes} min | Available: ${availableMinutes} min | Only ${availableMinutes - totalMinutes} min buffer`;
+            }
+
+            let html = `
+                <div class="timing-check ${state}">
+                    <div class="timing-message">${message}</div>
+                    <div class="timing-details">${details}</div>
+            `;
+
+            if (state === 'fail') {
+                // Build skippable items list (BEFORE NEXT RENTAL items sorted by time, shortest first)
+                const skippable = tasks
+                    .filter(t => t.urgency === 'BEFORE NEXT RENTAL')
+                    .sort((a, b) => (a.estimated_minutes || 0) - (b.estimated_minutes || 0));
+
+                if (skippable.length > 0) {
+                    html += '<div class="timing-suggestions">Consider skipping: ';
+                    html += skippable.map(t => `${t.task} (~${t.estimated_minutes}min)`).join(', ');
+                    html += '<br>Or: contact the next renter to delay pickup by approximately ' + 
+                            Math.ceil(totalMinutes - availableMinutes) + ' minutes.</div>';
+                } else {
+                    html += '<div class="timing-suggestions">Cannot meet deadline. Contact the next renter immediately.</div>';
+                }
+            } else if (state === 'tight') {
+                html += '<div class="timing-suggestions">Recommend: start immediately, no breaks.</div>';
+            }
+
+            if (analysis.timing_note) {
+                html += `<div class="timing-note">${analysis.timing_note}</div>`;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        // =====================
+        // WHATSAPP SUMMARY
+        // =====================
+
+        function generateWhatsAppSummary(analysis) {
+            const vehicleId = document.getElementById('vehicleNickname').value;
+            const verdictEmoji = analysis.verdict === 'GO' ? '✅' : 
+                                 analysis.verdict === 'HOLD' ? '⚠️' : '🚫';
+
+            let summary = `${verdictEmoji} ${vehicleId} — ${analysis.verdict}\n`;
+            summary += `${analysis.verdict_reason}\n\n`;
+
+            // Action items (NOW and BEFORE NEXT RENTAL only)
+            const urgentItems = analysis.action_items.filter(item => 
+                item.urgency === 'NOW' || item.urgency === 'BEFORE NEXT RENTAL'
+            );
+
+            if (urgentItems.length > 0) {
+                urgentItems.forEach(item => {
+                    const timeStr = item.estimated_minutes ? ` (~${item.estimated_minutes}min)` : '';
+                    summary += `- ${item.task}${timeStr}\n`;
+                });
+                summary += '\n';
+            }
+
+            // High/Medium maintenance alerts
+            const alerts = analysis.maintenance_alerts.filter(alert =>
+                alert.severity === 'HIGH' || alert.severity === 'MEDIUM'
+            );
+
+            if (alerts.length > 0) {
+                summary += '🔧 ';
+                summary += alerts.map(a => a.alert).join(' | ');
+                summary += '\n\n';
+            }
+
+            summary += `⏱ Est. ready: ${analysis.time_to_ready}\n`;
+            summary += `💸 ${analysis.revenue_impact}\n\n`;
+            summary += 'Via Fleet Turnaround Assistant';
+
+            // Copy to clipboard
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(summary).then(() => {
+                    const btn = document.getElementById('whatsappBtn');
+                    const originalText = btn.textContent;
+                    btn.textContent = '✓ Copied!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                }).catch(() => {
+                    fallbackCopy(summary);
+                });
+            } else {
+                fallbackCopy(summary);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            const btn = document.getElementById('whatsappBtn');
+            const originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }
+
+        // =====================
+        // INITIALIZATION
+        // =====================
+
+        loadFleetHistory();
+    </script>
+</body>
+</html>
