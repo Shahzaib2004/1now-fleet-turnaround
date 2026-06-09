@@ -64,6 +64,12 @@ export default function FleetTurnaroundAssistant() {
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
+  // Image Upload and Vision Analysis States
+  const [images, setImages] = useState<string[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [analyzingImages, setAnalyzingImages] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+
   // Load fleet history on mount
   useEffect(() => {
     const stored = localStorage.getItem('fleet_history');
@@ -75,6 +81,84 @@ export default function FleetTurnaroundAssistant() {
       }
     }
   }, []);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageError(null);
+    const files = e.target.files;
+    if (!files) return;
+
+    const totalSelected = files.length + images.length;
+    if (totalSelected > 3) {
+      setImageError("You can upload a maximum of 3 images.");
+      return;
+    }
+
+    const MAX_SIZE = 4 * 1024 * 1024; // 4MB
+    
+    Array.from(files).forEach(file => {
+      if (file.size > MAX_SIZE) {
+        setImageError(`File "${file.name}" exceeds the 4MB size limit.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setImages(prev => [...prev, base64String]);
+        setImagePreviews(prev => [...prev, base64String]);
+      };
+      reader.onerror = () => {
+        setImageError("Failed to read image file.");
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAnalyzeImages = async () => {
+    if (images.length === 0) return;
+    setAnalyzingImages(true);
+    setImageError(null);
+
+    try {
+      const response = await fetch('/api/analyze-images', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ images })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Image analysis failed.');
+      }
+
+      const data = await response.json();
+      const newNotes = data.notes;
+
+      setFormData(prev => ({
+        ...prev,
+        returnConditionNotes: prev.returnConditionNotes
+          ? `${prev.returnConditionNotes}\n\n[AI Visual Inspection]:\n${newNotes}`
+          : `[AI Visual Inspection]:\n${newNotes}`
+      }));
+
+      // Clear after successful analysis
+      setImages([]);
+      setImagePreviews([]);
+    } catch (err: any) {
+      setImageError(err.message || 'An error occurred during image analysis.');
+    } finally {
+      setAnalyzingImages(false);
+    }
+  };
 
   // Validate form inputs
   const validateForm = (): boolean => {
@@ -245,6 +329,9 @@ export default function FleetTurnaroundAssistant() {
     setAnalysis(null);
     setError(null);
     setCheckedItems(new Set());
+    setImages([]);
+    setImagePreviews([]);
+    setImageError(null);
   };
 
   // WhatsApp summary
@@ -548,6 +635,61 @@ export default function FleetTurnaroundAssistant() {
                 {!formErrors.returnConditionNotes && (
                   <div className={styles.helperText}>Describe any damage, odors, mechanical issues, or other observations</div>
                 )}
+
+                {/* AI Image Analyzer Option */}
+                <div className={styles.imageUploadContainer}>
+                  <label className={styles.imageUploadLabel}>
+                    <span>📷 Add Return Photos (Optional)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageChange}
+                      disabled={analyzingImages}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                  
+                  {imagePreviews.length > 0 && (
+                    <div className={styles.imagePreviewsGrid}>
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className={styles.imagePreviewCard}>
+                          <img src={preview} alt={`upload-preview-${index}`} className={styles.imagePreview} />
+                          <button
+                            type="button"
+                            className={styles.removeImageBtn}
+                            onClick={() => removeImage(index)}
+                            title="Remove image"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {images.length > 0 && (
+                    <button
+                      type="button"
+                      className={styles.analyzeImagesBtn}
+                      onClick={handleAnalyzeImages}
+                      disabled={analyzingImages}
+                    >
+                      {analyzingImages ? (
+                        <>
+                          <span className={styles.spinner}></span>
+                          Analyzing Photos...
+                        </>
+                      ) : (
+                        `Analyze ${images.length} Photo${images.length > 1 ? 's' : ''} with AI`
+                      )}
+                    </button>
+                  )}
+
+                  {imageError && (
+                    <div className={styles.imageErrorText}>{imageError}</div>
+                  )}
+                </div>
               </div>
 
               <div className={styles.formGroup}>
